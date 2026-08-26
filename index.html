@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexreaper Ledger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body, #root { margin: 0; padding: 0; min-height: 100vh; background: #0E1226; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React & Babel -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide React (global as `lucide`) -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+
+  <!-- Recharts (global as `Recharts`) -->
+  <script src="https://cdn.jsdelivr.net/npm/recharts@2.10.3/umd/Recharts.js"></script>
+
+  <!-- The App code (uses globals) -->
+  <script type="text/babel">
+    // Destructure globals for convenience
+    const { useState, useEffect, useMemo, useCallback } = React;
+    const { createRoot } = ReactDOM;
+    const { 
+      Sunrise, Flame, BookOpen, PenLine, Dumbbell, Droplet, Moon,
+      CheckCircle2, Circle, ChevronRight, ChevronLeft, Settings, X,
+      Target, Compass, Award, RotateCcw, Sparkles, MapPin,
+      PiggyBank, Wallet, TrendingUp, Plus, Sun, Smile, Scissors, ShieldCheck, Wind, Star
+    } = lucide;
+    const { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } = Recharts;
+
+    // ---------- PALETTE ----------
+    const C = {
+      night: "#0E1226", surface: "#171E3E", surface2: "#1F2850",
+      line: "#2C3564", text: "#F3EEE2", sub: "#8D93B8",
+      gold: "#E8A33D", goldHi: "#FFC876", green: "#4FB08A", red: "#E0654B",
+    };
+
+    const uid = () => Math.random().toString(36).slice(2, 9);
+    const todayKey = (d = new Date()) => d.toISOString().slice(0, 10);
+    const dayLabel = (key) =>
+      new Date(key + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" });
+    const fmtDate = (d) =>
+      d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+    const QUOTES = [
+      "Discipline is choosing between what you want now and what you want most.",
+      "You do not rise to the level of your goals, you fall to the level of your systems.",
+      "The pain of discipline weighs ounces; the pain of regret weighs tons.",
+      "Small daily improvements are the key to staggering long-term results.",
+      "A single sunrise doesn't change your life — showing up every sunrise does.",
+      "Consistency turns intention into identity.",
+      "What you repeat, you become.",
+      "Every rep, every prayer, every page — a vote for who you're becoming.",
+    ];
+
+    const RELIGIONS = [
+      { id: "islam", label: "Islam", practice: "prayers", practiceLabel: "5 Daily Prayers" },
+      { id: "christianity", label: "Christianity", practice: "scripture", practiceLabel: "Prayer & Scripture Reading" },
+      { id: "hinduism", label: "Hinduism", practice: "puja", practiceLabel: "Meditation / Puja" },
+      { id: "buddhism", label: "Buddhism", practice: "meditation", practiceLabel: "Meditation" },
+      { id: "other", label: "Other / Prefer not to say", practice: null, practiceLabel: null },
+    ];
+
+    const PRAYERS = [
+      { id: "fajr", label: "Fajr" },
+      { id: "dhuhr", label: "Dhuhr" },
+      { id: "asr", label: "Asr" },
+      { id: "maghrib", label: "Maghrib" },
+      { id: "isha", label: "Isha" },
+    ];
+
+    const CAREERS = {
+      "Cybersecurity Expert": [
+        { title: "Foundations", items: ["Learn networking basics (TCP/IP, DNS, OSI model)", "Get comfortable in Linux & the command line", "Learn Python or Bash scripting"] },
+        { title: "Core Security Concepts", items: ["Study the CIA triad & core security principles", "Learn the OWASP Top 10 vulnerabilities", "Understand cryptography fundamentals"] },
+        { title: "Hands-On Practice", items: ["Build a home lab (VirtualBox / VMware)", "Practice on TryHackMe and HackTheBox", "Learn a SIEM basics (Splunk or ELK)"] },
+        { title: "Certifications", items: ["CompTIA Security+", "eJPT or CEH", "OSCP (for offensive security track)"] },
+        { title: "Specialize", items: ["Pick a track: Pentesting, SOC Analyst, Cloud Security, or GRC", "Build a public portfolio of write-ups & CTF results"] },
+        { title: "Get Experience", items: ["Apply for SOC analyst / security internships", "Try bug bounty programs", "Network in the infosec community"] },
+      ],
+      "Software Developer": [
+        { title: "Foundations", items: ["Learn a core language (Python, JS, or Java)", "Data structures & algorithms", "Git & version control"] },
+        { title: "Build", items: ["Build 3–5 real projects", "Learn a web framework (React/Node or similar)", "Learn SQL & databases"] },
+        { title: "Level Up", items: ["Contribute to open source", "Learn system design basics", "Practice technical interviews"] },
+        { title: "Get In", items: ["Build a portfolio site + GitHub", "Apply widely, do mock interviews", "Land an internship or junior role"] },
+      ],
+      // ... (rest of CAREERS from your code) – keep the full list
+      "Data Scientist / AI Engineer": [
+        { title: "Foundations", items: ["Python, statistics & linear algebra", "Pandas, NumPy, data wrangling", "SQL for data querying"] },
+        { title: "Core Skills", items: ["Machine learning fundamentals (scikit-learn)", "Data visualization (matplotlib/Seaborn)", "Intro to deep learning (PyTorch/TensorFlow)"] },
+        { title: "Portfolio", items: ["3+ end-to-end ML projects on GitHub", "Kaggle competitions", "Learn to communicate insights clearly"] },
+        { title: "Break In", items: ["Apply for data/ML internships", "Contribute to open datasets or research", "Keep up with new papers & tools"] },
+      ],
+      "Doctor": [
+        { title: "Pre-Med", items: ["Excel in biology, chemistry, physics", "Take the MCAT / equivalent entrance exam", "Get clinical volunteering experience"] },
+        { title: "Medical School", items: ["Complete pre-clinical coursework", "Pass licensing exam steps", "Clinical rotations across specialties"] },
+        { title: "Residency", items: ["Choose a specialty", "Match into residency", "Build hands-on patient experience"] },
+        { title: "Practice", items: ["Board certification", "Continuing education", "Build your practice or hospital career"] },
+      ],
+      "Entrepreneur / Business Owner": [
+        { title: "Foundations", items: ["Study business fundamentals & your industry", "Learn basic finance & accounting", "Talk to 20 potential customers"] },
+        { title: "Validate", items: ["Build a minimum viable product/service", "Get your first 10 paying customers", "Iterate based on feedback"] },
+        { title: "Grow", items: ["Set up systems & basic ops", "Build a small team or network of contractors", "Reinvest profit into growth"] },
+        { title: "Scale", items: ["Diversify revenue streams", "Build a brand people trust", "Mentor others / give back"] },
+      ],
+      "Fitness Coach": [
+        { title: "Foundations", items: ["Learn anatomy & exercise science basics", "Train consistently yourself", "Learn program design fundamentals"] },
+        { title: "Certify", items: ["Get a recognized certification (NASM/ACE/ISSA)", "Learn nutrition basics", "Practice coaching friends/family for free"] },
+        { title: "Build Experience", items: ["Take on paid clients", "Build an online presence (content, results)", "Specialize (strength, weight loss, sport-specific)"] },
+        { title: "Grow", items: ["Build a client roster or gym business", "Keep learning — courses, certifications", "Build referral & retention systems"] },
+      ],
+      "Teacher / Educator": [
+        { title: "Foundations", items: ["Complete relevant degree / teaching program", "Get classroom experience (student teaching/TA)", "Learn classroom management basics"] },
+        { title: "Certify", items: ["Get teaching certification/license", "Choose a subject/grade specialty"] },
+        { title: "Grow", items: ["Build your own lesson library", "Learn to differentiate instruction", "Seek mentorship from senior teachers"] },
+        { title: "Lead", items: ["Take on leadership roles (dept head, mentor)", "Keep growing — workshops, further study"] },
+      ],
+    };
+    const genericRoadmap = (goal) => [
+      { title: "Learn the Fundamentals", items: [`Study the core knowledge needed for ${goal}`, "Follow a structured course or curriculum", "Read 1–2 foundational books in the field"] },
+      { title: "Build Real Experience", items: ["Work on small real projects or practice cases", "Seek feedback from people ahead of you", "Track and reflect on what you learn weekly"] },
+      { title: "Get Credentialed", items: ["Earn a relevant certification or credential", "Build a portfolio or track record of results"] },
+      { title: "Network & Apply", items: ["Connect with people already doing this work", "Apply for opportunities / put yourself out there"] },
+      { title: "Specialize & Grow", items: ["Pick a niche within the field", "Keep learning — become known for depth"] },
+    ];
+
+    const GOAL_DEFS = [
+      { id: "habit", label: "Break a Habit", icon: Flame, desc: "Track a streak for a habit you want to quit (e.g. masturbation, smoking, junk food)." },
+      { id: "exercise", label: "Exercise Daily", icon: Dumbbell, desc: "Track daily reps or workouts, like 10 pushups a day." },
+      { id: "reading", label: "Read Daily", icon: BookOpen, desc: "Build a daily reading habit." },
+      { id: "writing", label: "Write Daily", icon: PenLine, desc: "Journal or write something every day." },
+      { id: "water", label: "Drink Water", icon: Droplet, desc: "Track daily water intake." },
+      { id: "sleep", label: "Sleep Early", icon: Moon, desc: "Track a consistent early bedtime." },
+      { id: "savings", label: "Save Money for Something", icon: PiggyBank, desc: "Budget monthly income vs expenses and track progress toward a purchase — gaming PC, car, etc." },
+    ];
+
+    const fmtMoney = (n, currency = "USD") => {
+      try { return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(n || 0); }
+      catch { return `${currency} ${Math.round(n || 0)}`; }
+    };
+    const monthKey = (d = new Date()) => d.toISOString().slice(0, 7);
+    const monthLabel = (key) => new Date(key + "-01T00:00:00").toLocaleDateString(undefined, { month: "short", year: "numeric" });
+
+    const LOOKS_TASKS = [
+      { id: "cleanse_am", label: "Cleanse face (AM)", icon: Droplet },
+      { id: "moisturize", label: "Moisturize", icon: Droplet },
+      { id: "spf", label: "Apply SPF / sun protection", icon: ShieldCheck },
+      { id: "cleanse_pm", label: "Cleanse face (PM)", icon: Droplet },
+      { id: "posture", label: "Posture check — stand/sit tall", icon: Wind },
+      { id: "mewing", label: "Tongue posture (mewing) & jaw relax", icon: Smile },
+      { id: "hair", label: "Haircare (brush/style/condition)", icon: Scissors },
+      { id: "grooming", label: "Grooming — nails, brows, beard/skin", icon: Scissors },
+      { id: "stretch", label: "Stretch / mobility work", icon: Dumbbell },
+      { id: "confidence", label: "Dress well & confidence check", icon: Star },
+    ];
+    const LOOKS_TIPS = [
+      "Skin: cleanse twice daily, moisturize, and never skip SPF — consistency beats any product.",
+      "Hair: regular trims and a routine matched to your hair type go further than trends.",
+      "Posture: standing tall instantly changes how you're perceived — and how you feel.",
+      "Fitness & sleep affect your face and body more than any single trick — train and rest well.",
+      "Grooming basics (nails, brows, skin) are quiet signals of self-respect people notice.",
+      "Confidence is a habit — good hygiene, good posture, and showing up prepared build it daily.",
+    ];
+
+    // Storage using localStorage
+    async function loadJSON(key, fallback) {
+      try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
+    }
+    async function saveJSON(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { console.error(e); }
+    }
+
+    // ---------------- UI atoms ----------------
+    function Card({ children, style, className = "" }) {
+      return (
+        <div
+          className={`rounded-2xl p-5 ${className}`}
+          style={{ background: C.surface, border: `1px solid ${C.line}`, ...style }}
+        >
+          {children}
+        </div>
+      );
+    }
+    function Pill({ active, onClick, children, icon: Icon }) {
+      return (
+        <button
+          onClick={onClick}
+          className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all"
+          style={{
+            background: active ? C.gold : "transparent",
+            color: active ? "#1A1000" : C.sub,
+            border: `1px solid ${active ? C.gold : C.line}`,
+          }}
+        >
+          {Icon && <Icon size={15} />}
+          {children}
+        </button>
+      );
+    }
+    function PrimaryButton({ children, onClick, disabled, style }) {
+      return (
+        <button
+          onClick={onClick}
+          disabled={disabled}
+          className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-transform active:scale-[0.98] disabled:opacity-40"
+          style={{ background: C.gold, color: "#1A1000", ...style }}
+        >
+          {children}
+        </button>
+      );
+    }
+    function GhostButton({ children, onClick, style }) {
+      return (
+        <button
+          onClick={onClick}
+          className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-medium"
+          style={{ background: "transparent", color: C.sub, border: `1px solid ${C.line}`, ...style }}
+        >
+          {children}
+        </button>
+      );
+    }
+    function Check({ done, onClick, label, sub }) {
+      return (
+        <button onClick={onClick} className="flex items-center gap-3 w-full text-left py-2.5 group">
+          {done ? <CheckCircle2 size={22} color={C.green} /> : <Circle size={22} color={C.line} className="group-hover:opacity-70" />}
+          <div className="flex-1">
+            <div style={{ color: done ? C.text : C.text, textDecoration: done ? "line-through" : "none", opacity: done ? 0.6 : 1 }} className="text-[15px] font-medium">
+              {label}
+            </div>
+            {sub && <div className="text-xs" style={{ color: C.sub }}>{sub}</div>}
+          </div>
+        </button>
+      );
+    }
+
+    // ---------------- Sunrise Arc ----------------
+    function SunriseArc({ pct }) {
+      const r = 70, c = 2 * Math.PI * r;
+      const dash = c * Math.min(1, pct);
+      return (
+        <div className="relative flex flex-col items-center justify-center py-4">
+          <svg width="180" height="110" viewBox="0 0 180 110">
+            <path d="M 20 100 A 70 70 0 0 1 160 100" fill="none" stroke={C.line} strokeWidth="10" strokeLinecap="round" />
+            <path
+              d="M 20 100 A 70 70 0 0 1 160 100"
+              fill="none"
+              stroke={C.gold}
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={`${dash} ${c}`}
+              style={{ transition: "stroke-dasharray 0.6s ease" }}
+            />
+            <circle cx={20 + 140 * Math.min(1, pct)} cy={100 - Math.sin(Math.PI * Math.min(1, pct)) * 70} r="7" fill={C.goldHi} opacity={pct > 0 ? 1 : 0} />
+          </svg>
+          <div className="absolute top-11 flex flex-col items-center">
+            <div className="text-3xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>
+              {Math.round(pct * 100)}%
+            </div>
+            <div className="text-[11px] tracking-wide" style={{ color: C.sub }}>TODAY'S PROGRESS</div>
+          </div>
+        </div>
+      );
+    }
+
+    // ================= ONBOARDING =================
+    function Onboarding({ onFinish }) {
+      const [step, setStep] = useState(0);
+      const [name, setName] = useState("");
+      const [age, setAge] = useState("");
+      const [weight, setWeight] = useState("");
+      const [weightUnit, setWeightUnit] = useState("kg");
+      const [religion, setReligion] = useState(null);
+      const [goals, setGoals] = useState([]);
+      const [habitName, setHabitName] = useState("");
+      const [pushupTarget, setPushupTarget] = useState(10);
+      const [career, setCareer] = useState("");
+      const [customCareer, setCustomCareer] = useState("");
+      const [savingsGoalName, setSavingsGoalName] = useState("");
+      const [savingsTarget, setSavingsTarget] = useState("");
+      const [savingsCurrent, setSavingsCurrent] = useState("0");
+      const [monthlyIncome, setMonthlyIncome] = useState("");
+      const [monthlyExpenses, setMonthlyExpenses] = useState("");
+      const [currency, setCurrency] = useState("USD");
+
+      const religionObj = RELIGIONS.find((r) => r.id === religion);
+      const steps = ["Welcome", "About You", "Beliefs", "Your Goals", "Future Self"];
+
+      const toggleGoal = (id) =>
+        setGoals((g) => (g.includes(id) ? g.filter((x) => x !== id) : [...g, id]));
+
+      const canNext = () => {
+        if (step === 1) return name.trim() && age && weight;
+        if (step === 2) return !!religion;
+        if (step === 3) return goals.length > 0 && (!goals.includes("habit") || habitName.trim())
+          && (!goals.includes("savings") || (savingsGoalName.trim() && savingsTarget));
+        if (step === 4) return career === "Other" ? customCareer.trim() : !!career;
+        return true;
+      };
+
+      const finish = () => {
+        const finalCareer = career === "Other" ? customCareer.trim() : career;
+        const finalGoals = [...goals];
+        if (religionObj?.practice && !finalGoals.includes("spiritual")) finalGoals.push("spiritual");
+        onFinish({
+          id: uid(), name: name.trim(), age: Number(age), weight: Number(weight), weightUnit,
+          religion, religionPractice: religionObj?.practice || null, religionPracticeLabel: religionObj?.practiceLabel || null,
+          goals: finalGoals, habitName: habitName.trim() || "Bad Habit", pushupTarget: Number(pushupTarget) || 10,
+          careerGoal: finalCareer, lastRelapseDate: todayKey(), habitStartDate: todayKey(),
+          roadmapProgress: {}, createdAt: todayKey(),
+          savingsGoalName: savingsGoalName.trim(), savingsTarget: Number(savingsTarget) || 0,
+          savingsCurrent: Number(savingsCurrent) || 0, monthlyIncome: Number(monthlyIncome) || 0,
+          monthlyExpenses: Number(monthlyExpenses) || 0, currency, savingsLog: {},
+          sleepStatus: "awake", sleepStartedAt: null, sleepSessions: [], sleepTargetHours: 8,
+        });
+      };
+
+      return (
+        <div className="min-h-screen flex items-center justify-center px-4" style={{ background: C.night }}>
+          <div className="w-full max-w-lg">
+            <div className="flex items-center justify-center gap-1.5 mb-8">
+              {steps.map((_, i) => (
+                <div key={i} className="h-1.5 rounded-full transition-all" style={{ width: i === step ? 28 : 8, background: i <= step ? C.gold : C.line }} />
+              ))}
+            </div>
+
+            <Card className="min-h-[420px] flex flex-col">
+              <div className="flex-1">
+                {step === 0 && (
+                  <div className="flex flex-col items-center text-center gap-4 py-8">
+                    <Sunrise size={48} color={C.gold} />
+                    <h1 className="text-3xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>Daily Discipline</h1>
+                    <p style={{ color: C.sub }} className="max-w-sm">
+                      A quiet ledger for the person you're becoming — prayer, body, mind, and the road toward who you want to be. Let's set it up.
+                    </p>
+                  </div>
+                )}
+
+                {step === 1 && (
+                  <div className="flex flex-col gap-4">
+                    <h2 className="text-xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>Tell me about you</h2>
+                    <Field label="Your name">
+                      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ahmed" style={inputStyle} />
+                    </Field>
+                    <div className="flex gap-3">
+                      <Field label="Age">
+                        <input type="number" min="10" max="100" value={age} onChange={(e) => setAge(e.target.value)} placeholder="22" style={inputStyle} />
+                      </Field>
+                      <Field label="Weight">
+                        <div className="flex gap-2">
+                          <input type="number" min="1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="70" style={{ ...inputStyle, flex: 1 }} />
+                          <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value)} style={{ ...inputStyle, width: 76 }}>
+                            <option value="kg">kg</option>
+                            <option value="lb">lb</option>
+                          </select>
+                        </div>
+                      </Field>
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="flex flex-col gap-4">
+                    <h2 className="text-xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>What's your faith background?</h2>
+                    <p className="text-sm" style={{ color: C.sub }}>This helps us tailor a daily spiritual practice for you. Totally optional to engage with.</p>
+                    <div className="flex flex-col gap-2 mt-1">
+                      {RELIGIONS.map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => setReligion(r.id)}
+                          className="text-left px-4 py-3 rounded-xl flex items-center justify-between"
+                          style={{ background: religion === r.id ? C.surface2 : "transparent", border: `1px solid ${religion === r.id ? C.gold : C.line}` }}
+                        >
+                          <span style={{ color: C.text }} className="font-medium">{r.label}</span>
+                          {religion === r.id && <CheckCircle2 size={18} color={C.gold} />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="flex flex-col gap-3">
+                    <h2 className="text-xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>What do you want to build or break?</h2>
+                    <p className="text-sm mb-1" style={{ color: C.sub }}>Pick everything you want to track daily.</p>
+                    <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
+                      {GOAL_DEFS.map((g) => (
+                        <button
+                          key={g.id}
+                          onClick={() => toggleGoal(g.id)}
+                          className="text-left px-4 py-3 rounded-xl flex items-start gap-3"
+                          style={{ background: goals.includes(g.id) ? C.surface2 : "transparent", border: `1px solid ${goals.includes(g.id) ? C.gold : C.line}` }}
+                        >
+                          <g.icon size={18} color={goals.includes(g.id) ? C.gold : C.sub} className="mt-0.5" />
+                          <div className="flex-1">
+                            <div style={{ color: C.text }} className="font-medium text-sm">{g.label}</div>
+                            <div style={{ color: C.sub }} className="text-xs">{g.desc}</div>
+                          </div>
+                          {goals.includes(g.id) && <CheckCircle2 size={16} color={C.gold} className="mt-0.5" />}
+                        </button>
+                      ))}
+                    </div>
+                    {goals.includes("habit") && (
+                      <input value={habitName} onChange={(e) => setHabitName(e.target.value)} placeholder="What habit? e.g. Masturbation, smoking, junk food" style={inputStyle} />
+                    )}
+                    {goals.includes("exercise") && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm" style={{ color: C.sub }}>Daily pushup target:</span>
+                        <input type="number" min="1" value={pushupTarget} onChange={(e) => setPushupTarget(e.target.value)} style={{ ...inputStyle, width: 80 }} />
+                      </div>
+                    )}
+                    {goals.includes("savings") && (
+                      <div className="flex flex-col gap-2 p-3 rounded-xl" style={{ background: C.surface2, border: `1px solid ${C.line}` }}>
+                        <span className="text-xs font-medium" style={{ color: C.sub }}>What are you saving for?</span>
+                        <input value={savingsGoalName} onChange={(e) => setSavingsGoalName(e.target.value)} placeholder="e.g. Gaming PC, Car, Trip" style={inputStyle} />
+                        <div className="flex gap-2">
+                          <Field label="Target cost">
+                            <input type="number" min="0" value={savingsTarget} onChange={(e) => setSavingsTarget(e.target.value)} placeholder="1500" style={inputStyle} />
+                          </Field>
+                          <Field label="Already saved">
+                            <input type="number" min="0" value={savingsCurrent} onChange={(e) => setSavingsCurrent(e.target.value)} placeholder="0" style={inputStyle} />
+                          </Field>
+                        </div>
+                        <div className="flex gap-2">
+                          <Field label="Monthly income">
+                            <input type="number" min="0" value={monthlyIncome} onChange={(e) => setMonthlyIncome(e.target.value)} placeholder="1200" style={inputStyle} />
+                          </Field>
+                          <Field label="Monthly expenses">
+                            <input type="number" min="0" value={monthlyExpenses} onChange={(e) => setMonthlyExpenses(e.target.value)} placeholder="900" style={inputStyle} />
+                          </Field>
+                        </div>
+                        <Field label="Currency">
+                          <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="PKR">PKR (₨)</option>
+                            <option value="INR">INR (₹)</option>
+                            <option value="AED">AED (د.إ)</option>
+                            <option value="SAR">SAR (﷼)</option>
+                          </select>
+                        </Field>
+                        {monthlyIncome && monthlyExpenses && (
+                          <div className="text-xs" style={{ color: Number(monthlyIncome) - Number(monthlyExpenses) > 0 ? C.green : C.red }}>
+                            You can save ~{fmtMoney(Number(monthlyIncome) - Number(monthlyExpenses), currency)}/month
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {step === 4 && (
+                  <div className="flex flex-col gap-3">
+                    <h2 className="text-xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>Who do you want to become?</h2>
+                    <p className="text-sm mb-1" style={{ color: C.sub }}>Pick a path and I'll build you a roadmap.</p>
+                    <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                      {[...Object.keys(CAREERS), "Other"].map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setCareer(c)}
+                          className="text-left px-3 py-2.5 rounded-xl text-sm font-medium"
+                          style={{ background: career === c ? C.surface2 : "transparent", border: `1px solid ${career === c ? C.gold : C.line}`, color: C.text }}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                    {career === "Other" && (
+                      <input value={customCareer} onChange={(e) => setCustomCareer(e.target.value)} placeholder="Type your goal, e.g. Airline Pilot" style={inputStyle} />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between mt-6 pt-4" style={{ borderTop: `1px solid ${C.line}` }}>
+                {step > 0 ? (
+                  <GhostButton onClick={() => setStep((s) => s - 1)}><ChevronLeft size={16} />Back</GhostButton>
+                ) : <div />}
+                {step < 4 ? (
+                  <PrimaryButton disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>Continue<ChevronRight size={16} /></PrimaryButton>
+                ) : (
+                  <PrimaryButton disabled={!canNext()} onClick={finish}><Sparkles size={16} />Start My Ledger</PrimaryButton>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
+      );
+    }
+    function Field({ label, children }) {
+      return (
+        <label className="flex flex-col gap-1.5 flex-1">
+          <span className="text-xs font-medium tracking-wide" style={{ color: C.sub }}>{label}</span>
+          {children}
+        </label>
+      );
+    }
+    const inputStyle = {
+      background: C.surface2, border: `1px solid ${C.line}`, color: C.text,
+      borderRadius: 10, padding: "10px 12px", fontSize: 14, outline: "none", width: "100%",
+    };
+
+    // ================= DASHBOARD =================
+    function Dashboard({ profile, setProfile, logs, setLogs }) {
+      const [showSettings, setShowSettings] = useState(false);
+      const [showRoadmap, setShowRoadmap] = useState(false);
+      const [tab, setTab] = useState("home");
+      const [customAmount, setCustomAmount] = useState("");
+      const today = todayKey();
+      const log = logs[today] || {};
+      const curMonth = monthKey();
+
+      const updateLog = (patch) => {
+        const next = { ...logs, [today]: { ...log, ...patch } };
+        setLogs(next);
+      };
+      const togglePrayer = (id) => {
+        const prayers = { ...(log.prayers || {}), [id]: !(log.prayers?.[id]) };
+        updateLog({ prayers });
+      };
+
+      const habitStreak = useMemo(() => {
+        const start = new Date((profile.lastRelapseDate || profile.habitStartDate) + "T00:00:00");
+        const now = new Date(todayKey() + "T00:00:00");
+        return Math.max(0, Math.round((now - start) / 86400000));
+      }, [profile.lastRelapseDate]);
+
+      const relapse = () => setProfile({ ...profile, lastRelapseDate: today });
+
+      const monthlySavings = (profile.monthlyIncome || 0) - (profile.monthlyExpenses || 0);
+      const savingsCurrent = profile.savingsCurrent || 0;
+      const savingsTarget = profile.savingsTarget || 0;
+      const remaining = Math.max(0, savingsTarget - savingsCurrent);
+      const monthsRemaining = monthlySavings > 0 ? Math.ceil(remaining / monthlySavings) : null;
+      const projectedDate = monthsRemaining != null
+        ? new Date(new Date().setMonth(new Date().getMonth() + monthsRemaining)).toLocaleDateString(undefined, { month: "short", year: "numeric" })
+        : null;
+      const loggedThisMonth = !!profile.savingsLog?.[curMonth];
+      const addContribution = (amount) => {
+        if (!amount || amount <= 0) return;
+        setProfile({
+          ...profile,
+          savingsCurrent: savingsCurrent + amount,
+          savingsLog: { ...(profile.savingsLog || {}), [curMonth]: (profile.savingsLog?.[curMonth] || 0) + amount },
+        });
+        setCustomAmount("");
+      };
+
+      const tasks = useMemo(() => {
+        const t = [];
+        if (profile.goals.includes("habit")) t.push({ id: "habit_ok", done: true });
+        if (profile.goals.includes("spiritual")) {
+          if (profile.religionPractice === "prayers") {
+            const done = PRAYERS.every((p) => log.prayers?.[p.id]);
+            t.push({ id: "prayers", done });
+          } else {
+            t.push({ id: "spiritual", done: !!log.spiritual });
+          }
+        }
+        if (profile.goals.includes("exercise")) t.push({ id: "exercise", done: !!log.exerciseDone });
+        if (profile.goals.includes("reading")) t.push({ id: "reading", done: !!log.reading });
+        if (profile.goals.includes("writing")) t.push({ id: "writing", done: !!log.writing });
+        if (profile.goals.includes("water")) t.push({ id: "water", done: (log.water || 0) >= 8 });
+        if (profile.goals.includes("sleep")) t.push({ id: "sleep", done: !!log.sleep });
+        return t;
+      }, [profile, log]);
+
+      const trackedCount = tasks.filter((t) => t.id !== "habit_ok").length || 1;
+      const doneCount = tasks.filter((t) => t.id !== "habit_ok" && t.done).length;
+      const pct = doneCount / trackedCount;
+
+      const weekData = useMemo(() => {
+        const arr = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const key = todayKey(d);
+          const l = logs[key] || {};
+          let total = 0, done = 0;
+          if (profile.goals.includes("spiritual")) {
+            total++;
+            if (profile.religionPractice === "prayers") { if (PRAYERS.every((p) => l.prayers?.[p.id])) done++; }
+            else if (l.spiritual) done++;
+          }
+          if (profile.goals.includes("exercise")) { total++; if (l.exerciseDone) done++; }
+          if (profile.goals.includes("reading")) { total++; if (l.reading) done++; }
+          if (profile.goals.includes("writing")) { total++; if (l.writing) done++; }
+          if (profile.goals.includes("water")) { total++; if ((l.water || 0) >= 8) done++; }
+          if (profile.goals.includes("sleep")) { total++; if (l.sleep) done++; }
+          arr.push({ day: dayLabel(key), pct: total ? Math.round((done / total) * 100) : 0 });
+        }
+        return arr;
+      }, [logs, profile]);
+
+      const quote = QUOTES[new Date().getDate() % QUOTES.length];
+      const roadmap = CAREERS[profile.careerGoal] || genericRoadmap(profile.careerGoal);
+      const roadmapTotal = roadmap.reduce((s, st) => s + st.items.length, 0);
+      const roadmapDone = Object.values(profile.roadmapProgress || {}).filter(Boolean).length;
+
+      return (
+        <div className="min-h-screen pb-10" style={{ background: C.night }}>
+          <div className="px-5 pt-6 pb-2 flex items-center justify-between max-w-3xl mx-auto">
+            <div>
+              <div className="text-xs tracking-widest" style={{ color: C.sub }}>{fmtDate(new Date()).toUpperCase()}</div>
+              <h1 className="text-2xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>
+                {tab === "home" ? `${greeting()}, ${profile.name}` : tab === "sleep" ? "Sleep" : "Looksmaxing"}
+              </h1>
+            </div>
+            <button onClick={() => setShowSettings(true)} className="p-2 rounded-full" style={{ border: `1px solid ${C.line}` }}>
+              <Settings size={18} color={C.sub} />
+            </button>
+          </div>
+
+          <div className="max-w-3xl mx-auto px-5 mt-3">
+            <div className="flex gap-1 p-1.5 rounded-2xl" style={{ background: C.surface, border: `1px solid ${C.line}` }}>
+              <TabButton active={tab === "home"} onClick={() => setTab("home")} icon={Sunrise} label="Home" />
+              <TabButton active={tab === "sleep"} onClick={() => setTab("sleep")} icon={Moon} label="Sleep" />
+              <TabButton active={tab === "looks"} onClick={() => setTab("looks")} icon={Sparkles} label="Looksmaxing" />
+            </div>
+          </div>
+
+          <div className="max-w-3xl mx-auto px-5 flex flex-col gap-5 mt-4">
+            {tab === "home" && (<>
+              <Card><SunriseArc pct={pct} /><div className="flex items-center gap-2 justify-center text-center mt-1"><Sparkles size={14} color={C.gold} /><p className="text-xs italic" style={{ color: C.sub }}>{quote}</p></div></Card>
+
+              {profile.goals.includes("habit") && (
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3"><div className="p-2.5 rounded-xl" style={{ background: C.surface2 }}><Flame size={22} color={C.gold} /></div><div><div className="text-xs" style={{ color: C.sub }}>STREAK — {profile.habitName}</div><div className="text-2xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>{habitStreak} {habitStreak === 1 ? "day" : "days"}</div></div></div>
+                    <GhostButton onClick={relapse} style={{ padding: "8px 14px" }}><RotateCcw size={14} />Reset</GhostButton>
+                  </div>
+                  <MilestoneBar days={habitStreak} />
+                </Card>
+              )}
+
+              {profile.goals.includes("spiritual") && (
+                <Card>
+                  <SectionTitle icon={Sunrise} title={profile.religionPracticeLabel} />
+                  {profile.religionPractice === "prayers" ? (
+                    <div className="grid grid-cols-5 gap-2 mt-2">
+                      {PRAYERS.map((p) => (
+                        <button key={p.id} onClick={() => togglePrayer(p.id)} className="flex flex-col items-center gap-1.5 py-3 rounded-xl"
+                          style={{ background: log.prayers?.[p.id] ? C.surface2 : "transparent", border: `1px solid ${log.prayers?.[p.id] ? C.gold : C.line}` }}>
+                          {log.prayers?.[p.id] ? <CheckCircle2 size={18} color={C.green} /> : <Circle size={18} color={C.line} />}
+                          <span className="text-[11px]" style={{ color: C.text }}>{p.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <Check done={!!log.spiritual} onClick={() => updateLog({ spiritual: !log.spiritual })} label={profile.religionPracticeLabel} />
+                  )}
+                </Card>
+              )}
+
+              {profile.goals.includes("exercise") && (
+                <Card>
+                  <SectionTitle icon={Dumbbell} title="Exercise" />
+                  <div className="flex items-center justify-between mt-1">
+                    <div><div className="text-2xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>{log.exerciseCount || 0} <span className="text-sm font-normal" style={{ color: C.sub }}>/ {profile.pushupTarget} pushups</span></div></div>
+                    <div className="flex gap-2">
+                      <GhostButton style={{ padding: "8px 12px" }} onClick={() => updateLog({ exerciseCount: Math.max(0, (log.exerciseCount || 0) - 5) })}>-5</GhostButton>
+                      <PrimaryButton style={{ padding: "8px 16px" }} onClick={() => { const c = (log.exerciseCount || 0) + 5; updateLog({ exerciseCount: c, exerciseDone: c >= profile.pushupTarget }); }}>+5</PrimaryButton>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full mt-3" style={{ background: C.surface2 }}><div className="h-2 rounded-full transition-all" style={{ width: `${Math.min(100, ((log.exerciseCount || 0) / profile.pushupTarget) * 100)}%`, background: C.gold }} /></div>
+                </Card>
+              )}
+
+              {(profile.goals.includes("reading") || profile.goals.includes("writing") || profile.goals.includes("water") || profile.goals.includes("sleep")) && (
+                <Card>
+                  <SectionTitle icon={Target} title="Daily Practice" />
+                  <div className="flex flex-col divide-y" style={{ borderColor: C.line }}>
+                    {profile.goals.includes("reading") && <Check done={!!log.reading} onClick={() => updateLog({ reading: !log.reading })} label="Read today" sub="Even 10 pages counts" />}
+                    {profile.goals.includes("writing") && <Check done={!!log.writing} onClick={() => updateLog({ writing: !log.writing })} label="Write / journal today" sub="A few honest sentences" />}
+                    {profile.goals.includes("sleep") && (
+                      <div className="flex items-center justify-between py-2.5">
+                        <div><div className="text-[15px] font-medium" style={{ color: C.text }}>Sleep</div><div className="text-xs" style={{ color: C.sub }}>{log.sleepDurationMin ? `Logged ${Math.floor(log.sleepDurationMin / 60)}h ${log.sleepDurationMin % 60}m last night` : "Tracked in the Sleep tab"}</div></div>
+                        {log.sleep ? <CheckCircle2 size={20} color={C.green} /> : <Moon size={18} color={C.sub} />}
+                      </div>
+                    )}
+                    {profile.goals.includes("water") && (
+                      <div className="py-2.5">
+                        <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium" style={{ color: C.text }}>Water — {log.water || 0} / 8 glasses</span></div>
+                        <div className="flex gap-1.5">{Array.from({ length: 8 }).map((_, i) => (<button key={i} onClick={() => updateLog({ water: i + 1 === log.water ? i : i + 1 })} className="flex-1 h-7 rounded-md" style={{ background: i < (log.water || 0) ? C.gold : C.surface2, border: `1px solid ${C.line}` }} />))}</div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              <Card><SectionTitle icon={Award} title="This Week" /><div style={{ width: "100%", height: 140 }} className="mt-2"><ResponsiveContainer><BarChart data={weekData}><CartesianGrid strokeDasharray="3 3" stroke={C.line} vertical={false} /><XAxis dataKey="day" tick={{ fill: C.sub, fontSize: 11 }} axisLine={{ stroke: C.line }} tickLine={false} /><YAxis hide domain={[0,100]} /><Tooltip contentStyle={{ background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 8, color: C.text }} formatter={(v) => [`${v}%`, "Completed"]} /><Bar dataKey="pct" radius={[6,6,0,0]} fill={C.gold} /></BarChart></ResponsiveContainer></div></Card>
+
+              {profile.goals.includes("savings") && (
+                <Card>
+                  <div className="flex items-center justify-between"><SectionTitle icon={PiggyBank} title={`Saving for: ${profile.savingsGoalName}`} /><TrendingUp size={16} color={monthlySavings > 0 ? C.green : C.red} /></div>
+                  <div className="flex items-end justify-between mt-3 mb-1"><span className="text-2xl font-bold" style={{ color: C.text, fontFamily: "Fraunces, serif" }}>{fmtMoney(savingsCurrent, profile.currency)}</span><span className="text-sm" style={{ color: C.sub }}>of {fmtMoney(savingsTarget, profile.currency)}</span></div>
+                  <div className="h-2.5 rounded-full" style={{ background: C.surface2 }}><div className="h-2.5 rounded-full transition-all" style={{ width: `${Math.min(100, (savingsCurrent / (savingsTarget || 1)) * 100)}%`, background: C.gold }} /></div>
+                  <div className="grid grid-cols-2 gap-3 mt-4"><div className="p-3 rounded-xl" style={{ background: C.surface2 }}><div className="text-[11px]" style={{ color: C.sub }}>MONTHLY BUDGET</div><div className="text-sm font-semibold mt-0.5" style={{ color: monthlySavings >= 0 ? C.green : C.red }}>{monthlySavings >= 0 ? "+" : ""}{fmtMoney(monthlySavings, profile.currency)}/mo</div><div className="text-[11px] mt-0.5" style={{ color: C.sub }}>{fmtMoney(profile.monthlyIncome, profile.currency)} in − {fmtMoney(profile.monthlyExpenses, profile.currency)} out</div></div><div className="p-3 rounded-xl" style={{ background: C.surface2 }}><div className="text-[11px]" style={{ color: C.sub }}>TIME TO GOAL</div><div className="text-sm font-semibold mt-0.5" style={{ color: C.text }}>{monthlySavings <= 0 ? "Adjust budget" : remaining === 0 ? "Reached! 🎉" : `${monthsRemaining} mo · ${projectedDate}`}</div></div></div>
+                  <div className="mt-4"><div className="text-xs mb-2" style={{ color: C.sub }}>{loggedThisMonth ? `You've logged ${fmtMoney(profile.savingsLog[curMonth], profile.currency)} for ${monthLabel(curMonth)}` : `Log this month's savings (${monthLabel(curMonth)})`}</div><div className="flex gap-2"><PrimaryButton style={{ padding: "8px 14px", flexShrink: 0 }} disabled={monthlySavings <= 0} onClick={() => addContribution(monthlySavings)}><Wallet size={14} />Add budgeted {fmtMoney(monthlySavings, profile.currency)}</PrimaryButton></div><div className="flex gap-2 mt-2"><input type="number" min="0" placeholder="Custom amount" value={customAmount} onChange={(e) => setCustomAmount(e.target.value)} style={{ ...inputStyle, flex: 1 }} /><GhostButton style={{ padding: "8px 14px" }} onClick={() => addContribution(Number(customAmount))}><Plus size={14} />Add</GhostButton></div></div>
+                </Card>
+              )}
+
+              <Card>
+                <button className="w-full flex items-center justify-between" onClick={() => setShowRoadmap((s) => !s)}><SectionTitle icon={Compass} title={`Roadmap · ${profile.careerGoal}`} /><ChevronRight size={18} color={C.sub} style={{ transform: showRoadmap ? "rotate(90deg)" : "none", transition: "transform 0.2s" }} /></button>
+                <div className="h-2 rounded-full mt-3 mb-1" style={{ background: C.surface2 }}><div className="h-2 rounded-full" style={{ width: `${(roadmapDone / roadmapTotal) * 100}%`, background: C.green }} /></div>
+                <div className="text-xs mb-1" style={{ color: C.sub }}>{roadmapDone} / {roadmapTotal} steps complete</div>
+                {showRoadmap && (
+                  <div className="mt-3 flex flex-col gap-4">
+                    {roadmap.map((stage, si) => (
+                      <div key={si}><div className="flex items-center gap-2 mb-1.5"><MapPin size={14} color={C.gold} /><span className="text-sm font-semibold" style={{ color: C.text }}>{stage.title}</span></div><div className="flex flex-col pl-5" style={{ borderLeft: `1px solid ${C.line}` }}>{stage.items.map((item, ii) => { const key = `${si}-${ii}`; const done = !!profile.roadmapProgress?.[key]; return <Check key={key} done={done} label={item} onClick={() => setProfile({ ...profile, roadmapProgress: { ...profile.roadmapProgress, [key]: !done } })} />; })}</div></div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </>)}
+
+            {tab === "sleep" && <SleepTab profile={profile} setProfile={setProfile} logs={logs} setLogs={setLogs} />}
+            {tab === "looks" && <LooksTab profile={profile} logs={logs} setLogs={setLogs} />}
+          </div>
+
+          {showSettings && <SettingsModal profile={profile} setProfile={setProfile} onClose={() => setShowSettings(false)} />}
+        </div>
+      );
+    }
+    function TabButton({ active, onClick, icon: Icon, label }) {
+      return <button onClick={onClick} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl transition-colors" style={{ background: active ? C.surface2 : "transparent" }}><Icon size={16} color={active ? C.gold : C.sub} /><span className="text-xs font-medium" style={{ color: active ? C.gold : C.sub }}>{label}</span></button>;
+    }
+
+    // ================= SLEEP TAB =================
+    function SleepTab({ profile, setProfile, logs, setLogs }) {
+      const [, forceTick] = useState(0);
+      const isAsleep = profile.sleepStatus === "asleep";
+      useEffect(() => { if (!isAsleep) return; const t = setInterval(() => forceTick(x => x+1), 30000); return () => clearInterval(t); }, [isAsleep]);
+      const targetHours = profile.sleepTargetHours || 8, targetMin = targetHours * 60;
+      const hm = (min) => `${Math.floor(min/60)}h ${min%60}m`;
+      const goToSleep = () => setProfile({ ...profile, sleepStatus: "asleep", sleepStartedAt: new Date().toISOString() });
+      const wakeUp = () => {
+        const start = new Date(profile.sleepStartedAt), end = new Date(), durationMin = Math.max(1, Math.round((end-start)/60000)), wakeDate = todayKey(end);
+        const sessions = [...(profile.sleepSessions||[]), { start: start.toISOString(), end: end.toISOString(), durationMin, date: wakeDate }].slice(-30);
+        setProfile({ ...profile, sleepStatus: "awake", sleepStartedAt: null, sleepSessions: sessions });
+        const dayLog = logs[wakeDate] || {};
+        setLogs({ ...logs, [wakeDate]: { ...dayLog, sleepDurationMin: durationMin, sleep: durationMin >= targetMin } });
+      };
+      const elapsedMin = isAsleep ? Math.max(0, Math.round((Date.now() - new Date(profile.sleepStartedAt).getTime()) / 60000)) : 0;
+      const sessions = profile.sleepSessions || [];
+      const recent = [...sessions].slice(-7).reverse();
+      const chartData = [...sessions].slice(-7).map(s => ({ day: dayLabel(s.date), hours: +(s.durationMin/60).toFixed(1) }));
+      const avgMin = recent.length ? Math.round(recent.reduce((a,s) => a + s.durationMin, 0) / recent.length) : 0;
+      return (
+        <div className="flex flex-col gap-5">
+          <Card><div className="flex flex-col items-center text-center gap-3 py-4">{isAsleep ? <Moon size={40} color={C.gold} /> : <Sun size={40} color={C.gold} />}{isAsleep ? (<><div className="text-sm" style={{ color: C.sub }}>Sleeping since {new Date(profile.sleepStartedAt).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}</div><div className="text-3xl font-bold" style={{color:C.text,fontFamily:"Fraunces,serif"}}>{hm(elapsedMin)}</div><PrimaryButton onClick={wakeUp}><Sun size={16}/>I Just Woke Up</PrimaryButton></>) : (<><div className="text-sm" style={{ color: C.sub }}>Ready to wind down?</div><PrimaryButton onClick={goToSleep}><Moon size={16}/>I'm Going to Sleep</PrimaryButton></>)}</div></Card>
+          <Card><SectionTitle icon={Target} title="Sleep Target"/><div className="flex items-center gap-3 mt-2"><input type="number" min="4" max="12" value={targetHours} onChange={e => setProfile({...profile, sleepTargetHours: Number(e.target.value)})} style={{...inputStyle, width:80}}/><span className="text-sm" style={{color:C.sub}}>hours / night</span></div></Card>
+          {chartData.length > 0 && (<Card><SectionTitle icon={Award} title="Last 7 Nights"/><div style={{width:"100%",height:140}} className="mt-2"><ResponsiveContainer><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" stroke={C.line} vertical={false}/><XAxis dataKey="day" tick={{fill:C.sub,fontSize:11}} axisLine={{stroke:C.line}} tickLine={false}/><YAxis hide domain={[0,12]}/><Tooltip contentStyle={{background:C.surface2,border:`1px solid ${C.line}`,borderRadius:8,color:C.text}} formatter={v => [`${v}h`, "Slept"]}/><Bar dataKey="hours" radius={[6,6,0,0]} fill={C.gold}/></BarChart></ResponsiveContainer></div><div className="text-xs mt-2" style={{color:C.sub}}>Average: {hm(avgMin)} · Target: {targetHours}h</div></Card>)}
+          {recent.length > 0 && (<Card><SectionTitle icon={Moon} title="History"/><div className="flex flex-col divide-y mt-2" style={{borderColor:C.line}}>{recent.map((s,i) => (<div key={i} className="flex items-center justify-between py-2.5 text-sm"><span style={{color:C.text}}>{monthLabel(s.date.slice(0,7))} {s.date.slice(8,10)}</span><span style={{color:C.sub}} className="hidden sm:inline">{new Date(s.start).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})} → {new Date(s.end).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}</span><span style={{color: s.durationMin >= targetMin ? C.green : C.gold, fontWeight:600}}>{hm(s.durationMin)}</span></div>))}</div></Card>)}
+          {sessions.length === 0 && (<Card><p className="text-sm text-center py-4" style={{color:C.sub}}>No sleep logged yet. Tap "I'm Going to Sleep" tonight, then "I Just Woke Up" tomorrow to start your history.</p></Card>)}
+        </div>
+      );
+    }
+
+    // ================= LOOKSMAXING TAB =================
+    function LooksTab({ profile, logs, setLogs }) {
+      const today = todayKey();
+      const log = logs[today] || {};
+      const looks = log.looks || {};
+      const toggle = (id) => { const next = { ...looks, [id]: !looks[id] }; setLogs({ ...logs, [today]: { ...log, looks: next } }); };
+      const done = LOOKS_TASKS.filter(t => looks[t.id]).length;
+      const pct = done / LOOKS_TASKS.length;
+      const weekData = useMemo(() => { const arr=[]; for(let i=6; i>=0; i--){ const d=new Date(); d.setDate(d.getDate()-i); const key=todayKey(d); const l=logs[key]?.looks||{}; const c=LOOKS_TASKS.filter(t=>l[t.id]).length; arr.push({day:dayLabel(key), pct:Math.round((c/LOOKS_TASKS.length)*100)}); } return arr; }, [logs]);
+      return (
+        <div className="flex flex-col gap-5">
+          <Card><div className="flex items-center gap-3"><Sparkles size={22} color={C.gold}/><div><div className="text-lg font-bold" style={{color:C.text,fontFamily:"Fraunces,serif"}}>Looksmaxing</div><div className="text-xs" style={{color:C.sub}}>The fundamentals: skin, hair, posture, fitness, hygiene, confidence — done consistently.</div></div></div><div className="h-2.5 rounded-full mt-4" style={{background:C.surface2}}><div className="h-2.5 rounded-full transition-all" style={{width:`${pct*100}%`, background:C.gold}}/></div><div className="text-xs mt-1.5" style={{color:C.sub}}>{done} / {LOOKS_TASKS.length} done today</div></Card>
+          <Card><SectionTitle icon={CheckCircle2} title="Today's Checklist"/><div className="flex flex-col divide-y mt-1" style={{borderColor:C.line}}>{LOOKS_TASKS.map(t => <Check key={t.id} done={!!looks[t.id]} onClick={() => toggle(t.id)} label={t.label} />)}</div></Card>
+          <Card><SectionTitle icon={Award} title="This Week"/><div style={{width:"100%",height:140}} className="mt-2"><ResponsiveContainer><BarChart data={weekData}><CartesianGrid strokeDasharray="3 3" stroke={C.line} vertical={false}/><XAxis dataKey="day" tick={{fill:C.sub,fontSize:11}} axisLine={{stroke:C.line}} tickLine={false}/><YAxis hide domain={[0,100]}/><Tooltip contentStyle={{background:C.surface2,border:`1px solid ${C.line}`,borderRadius:8,color:C.text}} formatter={v => [`${v}%`, "Completed"]}/><Bar dataKey="pct" radius={[6,6,0,0]} fill={C.gold}/></BarChart></ResponsiveContainer></div></Card>
+          <Card><SectionTitle icon={Star} title="Tips"/><div className="flex flex-col gap-2.5 mt-2">{LOOKS_TIPS.map((tip,i) => <div key={i} className="flex items-start gap-2.5"><div className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background:C.gold}}/><p className="text-sm" style={{color:C.sub}}>{tip}</p></div>)}</div></Card>
+        </div>
+      );
+    }
+
+    function greeting() {
+      const h = new Date().getHours();
+      if (h < 5) return "Still up";
+      if (h < 12) return "Good morning";
+      if (h < 17) return "Good afternoon";
+      if (h < 21) return "Good evening";
+      return "Good night";
+    }
+    function SectionTitle({ icon: Icon, title }) {
+      return <div className="flex items-center gap-2"><Icon size={16} color={C.gold} /><h3 className="font-semibold text-sm tracking-wide" style={{color:C.text}}>{title}</h3></div>;
+    }
+    function MilestoneBar({ days }) {
+      const milestones = [3,7,14,30,60,90];
+      const next = milestones.find(m => m > days) || milestones[milestones.length-1];
+      const prev = [...milestones].reverse().find(m => m <= days) || 0;
+      const pct = Math.min(1, (days - prev) / (next - prev || 1));
+      return (<div className="mt-4"><div className="flex justify-between text-[11px] mb-1" style={{color:C.sub}}><span>{prev}d</span><span>Next milestone: {next}d</span></div><div className="h-1.5 rounded-full" style={{background:C.surface2}}><div className="h-1.5 rounded-full" style={{width:`${pct*100}%`,background:C.green}}/></div></div>);
+    }
+
+    function SettingsModal({ profile, setProfile, onClose }) {
+      const [local, setLocal] = useState(profile);
+      return (
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50" style={{background:"rgba(0,0,0,0.6)"}} onClick={onClose}>
+          <div onClick={e => e.stopPropagation()} className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 max-h-[85vh] overflow-y-auto" style={{background:C.surface,border:`1px solid ${C.line}`}}>
+            <div className="flex items-center justify-between mb-4"><h2 className="text-lg font-bold" style={{color:C.text,fontFamily:"Fraunces,serif"}}>Settings</h2><button onClick={onClose}><X size={20} color={C.sub}/></button></div>
+            <div className="flex flex-col gap-3">
+              <Field label="Name"><input style={inputStyle} value={local.name} onChange={e => setLocal({...local, name:e.target.value})}/></Field>
+              <div className="flex gap-3"><Field label="Age"><input type="number" style={inputStyle} value={local.age} onChange={e => setLocal({...local, age:Number(e.target.value)})}/></Field><Field label={`Weight (${local.weightUnit})`}><input type="number" style={inputStyle} value={local.weight} onChange={e => setLocal({...local, weight:Number(e.target.value)})}/></Field></div>
+              <Field label="Pushup target"><input type="number" style={inputStyle} value={local.pushupTarget} onChange={e => setLocal({...local, pushupTarget:Number(e.target.value)})}/></Field>
+              <Field label="Habit name"><input style={inputStyle} value={local.habitName} onChange={e => setLocal({...local, habitName:e.target.value})}/></Field>
+              <Field label="Career goal"><select style={inputStyle} value={local.careerGoal} onChange={e => setLocal({...local, careerGoal:e.target.value})}>{[...Object.keys(CAREERS), local.careerGoal].filter((v,i,a)=>a.indexOf(v)===i).map(c => <option key={c} value={c}>{c}</option>)}</select></Field>
+              {local.goals?.includes("savings") && (<><div className="text-xs font-semibold mt-1" style={{color:C.sub}}>SAVINGS GOAL</div><Field label="Saving for"><input style={inputStyle} value={local.savingsGoalName} onChange={e => setLocal({...local, savingsGoalName:e.target.value})}/></Field><div className="flex gap-3"><Field label="Target cost"><input type="number" style={inputStyle} value={local.savingsTarget} onChange={e => setLocal({...local, savingsTarget:Number(e.target.value)})}/></Field><Field label="Currently saved"><input type="number" style={inputStyle} value={local.savingsCurrent} onChange={e => setLocal({...local, savingsCurrent:Number(e.target.value)})}/></Field></div><div className="flex gap-3"><Field label="Monthly income"><input type="number" style={inputStyle} value={local.monthlyIncome} onChange={e => setLocal({...local, monthlyIncome:Number(e.target.value)})}/></Field><Field label="Monthly expenses"><input type="number" style={inputStyle} value={local.monthlyExpenses} onChange={e => setLocal({...local, monthlyExpenses:Number(e.target.value)})}/></Field></div><Field label="Currency"><select style={inputStyle} value={local.currency} onChange={e => setLocal({...local, currency:e.target.value})}><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="PKR">PKR (₨)</option><option value="INR">INR (₹)</option><option value="AED">AED (د.إ)</option><option value="SAR">SAR (﷼)</option></select></Field></>)}
+            </div>
+            <div className="flex gap-2 mt-5"><GhostButton onClick={onClose} style={{flex:1}}>Cancel</GhostButton><PrimaryButton style={{flex:1}} onClick={() => { setProfile(local); onClose(); }}>Save Changes</PrimaryButton></div>
+          </div>
+        </div>
+      );
+    }
+
+    // ================= ROOT APP =================
+    function App() {
+      const [loading, setLoading] = useState(true);
+      const [profile, setProfileState] = useState(null);
+      const [logs, setLogsState] = useState({});
+
+      useEffect(() => {
+        (async () => {
+          const p = await loadJSON("profile", null);
+          const l = await loadJSON("logs", {});
+          setProfileState(p);
+          setLogsState(l);
+          setLoading(false);
+        })();
+      }, []);
+
+      const setProfile = useCallback((p) => { setProfileState(p); saveJSON("profile", p); }, []);
+      const setLogs = useCallback((l) => { setLogsState(l); saveJSON("logs", l); }, []);
+
+      useEffect(() => {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap";
+        document.head.appendChild(link);
+        return () => document.head.removeChild(link);
+      }, []);
+
+      if (loading) return <div className="min-h-screen flex items-center justify-center" style={{background:C.night,color:C.sub}}>Loading…</div>;
+
+      return <div style={{fontFamily:"Inter, system-ui, sans-serif"}}>{!profile ? <Onboarding onFinish={setProfile} /> : <Dashboard profile={profile} setProfile={setProfile} logs={logs} setLogs={setLogs} />}</div>;
+    }
+
+    // Render
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
