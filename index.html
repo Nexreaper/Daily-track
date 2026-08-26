@@ -1,14 +1,562 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0E1226" />
-    <meta name="description" content="Nexreaper Ledger is a client-side discipline tracker for habits, prayers, sleep, savings, and career progress." />
-    <title>Nexreaper Ledger</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0E1226">
+  <meta name="description" content="Nexreaper Ledger — track habits, prayers, fitness, sleep, savings and career progress. 100% offline, your data never leaves the device.">
+  <title>Nexreaper Ledger</title>
+  <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+  <script>
+    // Apply saved theme before first paint (no flash)
+    try { document.documentElement.dataset.theme = localStorage.getItem('nl_theme') || 'dark'; } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: 'var(--bg)',
+            surface: 'var(--surface)',
+            surface2: 'var(--surface-2)',
+            ink: 'var(--ink)',
+            muted: 'var(--muted)',
+            gold: 'var(--gold)',
+            mint: 'var(--green)',
+            ember: 'var(--red)',
+            line: 'var(--line)'
+          },
+          fontFamily: {
+            display: ['Fraunces', 'Georgia', 'serif'],
+            body: ['Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="font-body">
+  <noscript>
+    <div style="max-width:40rem;margin:4rem auto;padding:1.5rem;font-family:sans-serif;color:#F3EEE2;background:#171E3E;border-radius:1rem">
+      <h1>Nexreaper Ledger needs JavaScript</h1>
+      <p>This app stores everything locally in your browser. Please enable JavaScript to continue.</p>
+    </div>
+  </noscript>
+
+  <!-- ======================= ONBOARDING ======================= -->
+  <div id="onboarding" class="onboarding" hidden>
+    <div class="ob-wrap">
+      <div class="text-center mb-7">
+        <div class="logo-mark logo-mark-lg mx-auto mb-4" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 18h16M7 18a5 5 0 0 1 10 0M12 4v2.5M5.2 6.7l1.7 1.7M18.8 6.7l-1.7 1.7M3 12h1.5M19.5 12H21"/></svg>
+        </div>
+        <h1 class="font-display text-3xl">Nexreaper Ledger</h1>
+        <p class="text-muted text-sm mt-2">One calm ledger for your discipline — habits, faith, fitness, sleep, savings, and the career you are building.</p>
+      </div>
+
+      <div class="ob-steps">
+        <!-- Step 0 · Welcome -->
+        <div id="ob-step-0" class="ob-step">
+          <div class="card space-y-3">
+            <p class="text-sm text-muted leading-6">Everything stays on this phone. No accounts, no servers, no internet needed after the first load.</p>
+            <ul class="ob-feats">
+              <li><span class="ob-feat-ic"></span>Track 8 life areas in one place</li>
+              <li><span class="ob-feat-ic"></span>Prayer reminders &amp; random honest check-ins</li>
+              <li><span class="ob-feat-ic"></span>Sleep, savings &amp; career progress at a glance</li>
+              <li><span class="ob-feat-ic"></span>Fully offline — your data is yours</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Step 1 · About You -->
+        <div id="ob-step-1" class="ob-step" hidden>
+          <div class="card space-y-4">
+            <h2 class="font-display text-xl">About you</h2>
+            <label class="block">
+              <span class="fld">Name</span>
+              <input id="ob-name" class="input mt-1.5" type="text" placeholder="Your name" maxlength="40" autocomplete="off">
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block">
+                <span class="fld">Age</span>
+                <input id="ob-age" class="input mt-1.5" type="number" inputmode="numeric" min="1" max="120" placeholder="24">
+              </label>
+              <label class="block">
+                <span class="fld">Weight</span>
+                <div class="flex gap-2 mt-1.5">
+                  <input id="ob-weight" class="input" type="number" inputmode="decimal" min="1" step="0.1" placeholder="68">
+                  <select id="ob-unit" class="input ob-unit" aria-label="Weight unit">
+                    <option value="kg">kg</option>
+                    <option value="lb">lb</option>
+                  </select>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 · Beliefs -->
+        <div id="ob-step-2" class="ob-step" hidden>
+          <div class="card space-y-4">
+            <h2 class="font-display text-xl">Beliefs</h2>
+            <label class="block">
+              <span class="fld">Religion</span>
+              <select id="ob-religion" class="input mt-1.5">
+                <option value="islam">Islam</option>
+                <option value="christianity">Christianity</option>
+                <option value="hinduism">Hinduism</option>
+                <option value="buddhism">Buddhism</option>
+                <option value="other">Other / none</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="fld">Daily practice</span>
+              <select id="ob-practice" class="input mt-1.5"></select>
+            </label>
+            <label class="block">
+              <span class="fld">Practice label <span class="fld-hint">shown on the dashboard</span></span>
+              <input id="ob-practice-label" class="input mt-1.5" type="text" placeholder="Prayer checklist" maxlength="40">
+            </label>
+            <p id="ob-practice-hint" class="text-xs text-muted"></p>
+          </div>
+        </div>
+
+        <!-- Step 3 · Goals -->
+        <div id="ob-step-3" class="ob-step" hidden>
+          <div class="card space-y-4">
+            <h2 class="font-display text-xl">What are you tracking?</h2>
+            <div id="ob-goals" class="grid grid-cols-2 gap-2"></div>
+            <p id="ob-goal-err" class="text-xs text-ember err" hidden></p>
+            <div id="ob-habit-wrap" class="hidden">
+              <label class="block">
+                <span class="fld">Your habit</span>
+                <input id="ob-habit-name" class="input mt-1.5" type="text" placeholder="e.g. No smoking" maxlength="40">
+              </label>
+            </div>
+            <div id="ob-ex-wrap" class="hidden">
+              <label class="block">
+                <span class="fld">Pushup target (per day)</span>
+                <input id="ob-pushups" class="input mt-1.5" type="number" inputmode="numeric" min="1" max="500" value="20">
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 · Future Self -->
+        <div id="ob-step-4" class="ob-step" hidden>
+          <div class="card space-y-4">
+            <h2 class="font-display text-xl">Your future self</h2>
+            <label class="block">
+              <span class="fld">Career goal</span>
+              <input id="ob-career" class="input mt-1.5" type="text" placeholder="e.g. Software engineer" maxlength="60">
+            </label>
+            <div id="ob-savings-wrap" class="hidden space-y-4 border-t border-line pt-4">
+              <p class="text-sm font-semibold">Savings goal</p>
+              <label class="block">
+                <span class="fld">What are you saving for?</span>
+                <input id="ob-sav-name" class="input mt-1.5" type="text" placeholder="e.g. Gaming PC" maxlength="60">
+              </label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block">
+                  <span class="fld">Target</span>
+                  <input id="ob-sav-target" class="input mt-1.5" type="number" inputmode="decimal" min="0" placeholder="1500">
+                </label>
+                <label class="block">
+                  <span class="fld">Already saved</span>
+                  <input id="ob-sav-current" class="input mt-1.5" type="number" inputmode="decimal" min="0" placeholder="0">
+                </label>
+                <label class="block">
+                  <span class="fld">Monthly income</span>
+                  <input id="ob-income" class="input mt-1.5" type="number" inputmode="decimal" min="0" placeholder="0">
+                </label>
+                <label class="block">
+                  <span class="fld">Monthly expenses</span>
+                  <input id="ob-expenses" class="input mt-1.5" type="number" inputmode="decimal" min="0" placeholder="0">
+                </label>
+              </div>
+              <label class="block">
+                <span class="fld">Currency</span>
+                <select id="ob-currency" class="input mt-1.5">
+                  <option>USD</option><option>EUR</option><option>GBP</option><option>PKR</option>
+                  <option>INR</option><option>AED</option><option>SAR</option><option>AUD</option>
+                  <option>CAD</option><option>JPY</option><option>CNY</option><option>MXN</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ob-footer">
+        <button id="ob-back" class="btn-ghost" type="button" hidden>Back</button>
+        <div id="ob-dots" class="ob-dots" aria-hidden="true"></div>
+        <button id="ob-next" class="btn-gold ob-next" type="button">Begin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= APP ======================= -->
+  <div id="app" hidden>
+    <header class="app-header">
+      <div class="max-w-[48rem] mx-auto px-4 h-16 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 18h16M7 18a5 5 0 0 1 10 0M12 4v2.5M5.2 6.7l1.7 1.7M18.8 6.7l-1.7 1.7M3 12h1.5M19.5 12H21"/></svg>
+          </span>
+          <div class="min-w-0">
+            <div class="font-display text-[17px] leading-none truncate">Nexreaper Ledger</div>
+            <div id="hdr-date" class="text-[11px] text-muted mt-1 truncate"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="streak-chip" title="Days without a relapse">
+            <span class="streak-ic" id="streak-ic"></span>
+            <span id="streak-num" class="tabular-nums">0</span>
+            <span class="streak-lbl">days</span>
+          </div>
+          <button id="btn-settings" class="icon-btn" type="button" aria-label="Open settings" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7.5h9M17 7.5h3M4 12h3M11 12h9M4 16.5h11M19 16.5h1"/><circle cx="15" cy="7.5" r="1.8"/><circle cx="9" cy="12" r="1.8"/><circle cx="17" cy="16.5" r="1.8"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-[48rem] mx-auto px-4 pt-5 pb-28 space-y-4">
+
+      <!-- ============ HOME TAB ============ -->
+      <section id="tab-home">
+        <div id="notif-banner" class="card banner hidden"></div>
+        <div id="greeting"></div>
+
+        <!-- Sunrise arc -->
+        <div class="card">
+          <div class="flex items-center gap-5">
+            <div class="arc-wrap">
+              <svg viewBox="0 0 160 160" class="arc-svg" aria-hidden="true">
+                <circle cx="80" cy="80" r="64" class="arc-track" stroke-width="12" fill="none"/>
+                <circle id="arc-progress" cx="80" cy="80" r="64" class="arc-bar" stroke-width="12" fill="none"
+                        stroke-linecap="round" stroke-dasharray="402.124" stroke-dashoffset="402.124"/>
+              </svg>
+              <!-- HTML overlay (not SVG text) so the label stays perfectly centered at any scale -->
+              <div class="arc-center">
+                <span id="arc-pct" class="arc-pct">0%</span>
+                <span class="arc-sub">today</span>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h2 class="font-display text-lg leading-tight">Today's sunrise</h2>
+              <p class="text-xs text-muted mt-1" id="arc-sub-line">—</p>
+              <div id="goal-chips" class="goal-chips mt-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Habit streak -->
+        <div id="card-habit" class="card"><div id="habitBody"></div></div>
+
+        <!-- Spiritual practice -->
+        <div id="card-spiritual" class="card"><div id="spiritualBody"></div></div>
+
+        <!-- Exercise -->
+        <div id="card-exercise" class="card"><div id="exBody"></div></div>
+
+        <!-- Daily practice -->
+        <div id="card-daily" class="card">
+          <h3 class="card-title">Daily practice</h3>
+          <div id="dailyBody" class="space-y-2"></div>
+          <div class="mt-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold flex items-center gap-2"><span class="mini-ic" id="water-ic"></span>Water</span>
+              <span class="text-xs text-muted"><span id="waterCount" class="text-ink font-semibold tabular-nums">0</span> / 8 glasses</span>
+            </div>
+            <div id="waterGrid" class="water-grid"></div>
+            <div class="flex gap-2 mt-2.5">
+              <button class="btn-ghost btn-sm" type="button" data-action="water-minus">−1 glass</button>
+              <button class="btn-ghost btn-sm" type="button" data-action="water-fill">Fill all</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly chart -->
+        <div class="card">
+          <h3 class="card-title">Last 7 days</h3>
+          <p class="text-xs text-muted mb-3">Daily completion of your selected goals.</p>
+          <div id="weeklyChart" class="chart"></div>
+        </div>
+
+        <!-- Savings -->
+        <div id="card-savings" class="card">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="card-title mb-0 flex items-center gap-2"><span class="mini-ic" id="sav-ic"></span>Savings goal</h3>
+          </div>
+          <div id="savBody"></div>
+        </div>
+
+        <!-- Career roadmap -->
+        <div id="card-roadmap" class="card">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="card-title mb-0">Career roadmap</h3>
+            <span class="text-xs text-muted tabular-nums" id="rmCount">0 / 11</span>
+          </div>
+          <p id="rm-goal" class="text-xs text-muted mb-3 truncate"></p>
+          <div class="bar-track mb-4"><div class="bar-fill bar-gold" id="rmBar" style="width:0%"></div></div>
+          <div id="rmList" class="space-y-2"></div>
+        </div>
+
+        <!-- Check-ins -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="card-title mb-0">Random check-ins</h3>
+            <button class="icon-btn icon-btn-sm" type="button" data-action="open-checkin" aria-label="New check-in" title="Log an activity now">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+          <p class="text-xs text-muted mb-3">Honest one-liners. We nudge you every 1–3 hours.</p>
+          <ul id="checkinList" class="checkin-list"></ul>
+          <form id="checkin-quick" class="flex gap-2 mt-3">
+            <input id="checkin-quick-input" class="input flex-1" type="text" maxlength="200" placeholder="What are you doing right now?" autocomplete="off">
+            <button class="btn-gold px-4" type="submit">Log</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ============ SLEEP TAB ============ -->
+      <section id="tab-sleep" hidden class="space-y-4">
+        <h2 class="font-display text-2xl sleep-h">Sleep</h2>
+
+        <div class="card"><div id="sleepStatusBody" class="sleep-status"></div></div>
+
+        <div class="card">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-medium">Nightly target</div>
+              <div class="text-xs text-muted mt-0.5" id="sleepTargetSub"></div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="step-btn" type="button" data-action="sleep-target-minus" aria-label="Decrease target">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>
+              </button>
+              <span class="font-display text-xl w-14 text-center tabular-nums" id="sleepTargetVal">7.5h</span>
+              <button class="step-btn" type="button" data-action="sleep-target-plus" aria-label="Increase target">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Last 7 nights</h3>
+          <p class="text-xs text-muted mb-3">Dashed line = your target.</p>
+          <div id="sleepChart"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Recent sessions</h3>
+          <ul id="sleepHistory" class="mt-2"></ul>
+        </div>
+      </section>
+
+      <!-- ============ LOOKS TAB ============ -->
+      <section id="tab-looks" hidden class="space-y-4">
+        <h2 class="font-display text-2xl sleep-h">Looksmaxing</h2>
+
+        <div class="card">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="card-title mb-0">Today's checklist</h3>
+            <span class="text-sm text-muted tabular-nums" id="looksCount">0 / 10</span>
+          </div>
+          <div class="bar-track mb-4"><div class="bar-fill bar-gold" id="looksBar" style="width:0%"></div></div>
+          <div id="looksList" class="space-y-2"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Last 7 days</h3>
+          <p class="text-xs text-muted mb-3" id="looksAvg"></p>
+          <div id="looksChart" class="chart"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Field notes</h3>
+          <ul class="tips mt-2">
+            <li>Sleep and hydration show up before any product does.</li>
+            <li>Keep your haircut and beard shape consistent for 6+ weeks.</li>
+            <li>Stand tall and move slower than your nerves want you to.</li>
+            <li>One simple routine, done daily, beats ten products done once.</li>
+            <li>Phone at eye level — posture changes how you look more than clothes do.</li>
+            <li>Monthly progress photo, same angle and light. Trust the trend, not the day.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom tab bar -->
+    <nav class="tabbar" aria-label="Main tabs">
+      <div class="tabbar-inner">
+        <button class="tab-btn active" type="button" data-tab="home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+          <span>Home</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="sleep">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.752 15.002A9.72 9.72 0 0 1 18 17.25c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/></svg>
+          <span>Sleep</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="looks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.813 15.904 9.375 17.25l-.438-1.346a2.25 2.25 0 0 0-1.346-1.346L6.25 14.125l1.346-.438a2.25 2.25 0 0 0 1.346-1.346l.438-1.346.438 1.346a2.25 2.25 0 0 0 1.346 1.346l1.346.438-1.346.438a2.25 2.25 0 0 0-1.346 1.346ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.456-2.456L14.25 6l1.035-.259a3.375 3.375 0 0 0 2.456-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+          <span>Looks</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ======================= SETTINGS MODAL ======================= -->
+    <div id="settings" class="modal" hidden role="dialog" aria-modal="true" aria-label="Settings">
+      <div class="modal-backdrop" data-close></div>
+      <div class="modal-panel">
+        <div class="modal-head">
+          <div>
+            <h3 class="font-display text-xl">Settings</h3>
+            <p class="text-xs text-muted mt-0.5">Changes save to this device only.</p>
+          </div>
+          <button class="icon-btn" type="button" data-close aria-label="Close settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+
+          <section class="set-sec">
+            <div class="set-sec-title">Profile</div>
+            <div class="space-y-3">
+              <label class="block"><span class="fld">Name</span><input id="set-name" class="input mt-1.5" type="text" maxlength="40"></label>
+              <div class="grid-2">
+                <label class="block"><span class="fld">Age</span><input id="set-age" class="input mt-1.5" type="number" min="1" max="120"></label>
+                <label class="block"><span class="fld">Weight</span><input id="set-weight" class="input mt-1.5" type="number" min="0" step="0.1"></label>
+              </div>
+              <div class="grid-2">
+                <label class="block"><span class="fld">Unit</span>
+                  <select id="set-unit" class="input mt-1.5"><option value="kg">kg</option><option value="lb">lb</option></select>
+                </label>
+                <label class="block"><span class="fld">Habit name</span><input id="set-habit" class="input mt-1.5" type="text" maxlength="40"></label>
+              </div>
+              <div class="grid-2">
+                <label class="block"><span class="fld">Pushup target</span><input id="set-pushups" class="input mt-1.5" type="number" min="1" max="500"></label>
+                <label class="block"><span class="fld">Career goal</span><input id="set-career" class="input mt-1.5" type="text" maxlength="60"></label>
+              </div>
+            </div>
+            <button class="btn-gold w-full mt-4" type="button" data-action="save-profile">Save profile</button>
+          </section>
+
+          <section class="set-sec">
+            <div class="set-sec-title">Savings goal</div>
+            <div class="space-y-3">
+              <label class="block"><span class="fld">Goal name</span><input id="set-sav-name" class="input mt-1.5" type="text" maxlength="60"></label>
+              <div class="grid-2">
+                <label class="block"><span class="fld">Target</span><input id="set-sav-target" class="input mt-1.5" type="number" min="0" step="0.01"></label>
+                <label class="block"><span class="fld">Current</span><input id="set-sav-current" class="input mt-1.5" type="number" min="0" step="0.01"></label>
+              </div>
+              <div class="grid-2">
+                <label class="block"><span class="fld">Monthly income</span><input id="set-income" class="input mt-1.5" type="number" min="0" step="0.01"></label>
+                <label class="block"><span class="fld">Monthly expenses</span><input id="set-expenses" class="input mt-1.5" type="number" min="0" step="0.01"></label>
+              </div>
+              <label class="block"><span class="fld">Currency</span>
+                <select id="set-currency" class="input mt-1.5">
+                  <option>USD</option><option>EUR</option><option>GBP</option><option>PKR</option>
+                  <option>INR</option><option>AED</option><option>SAR</option><option>AUD</option>
+                  <option>CAD</option><option>JPY</option><option>CNY</option><option>MXN</option>
+                </select>
+              </label>
+            </div>
+            <button class="btn-gold w-full mt-4" type="button" data-action="save-savings">Save savings goal</button>
+          </section>
+
+          <section class="set-sec" id="set-prayers-sec" hidden>
+            <div class="set-sec-title">Prayer times <span class="fld-hint">local to your phone</span></div>
+            <div class="grid-2 space-y-3">
+              <label class="block"><span class="fld">Fajr</span><input id="set-t-Fajr" class="input mt-1.5" type="time"></label>
+              <label class="block"><span class="fld">Dhuhr</span><input id="set-t-Dhuhr" class="input mt-1.5" type="time"></label>
+              <label class="block"><span class="fld">Asr</span><input id="set-t-Asr" class="input mt-1.5" type="time"></label>
+              <label class="block"><span class="fld">Maghrib</span><input id="set-t-Maghrib" class="input mt-1.5" type="time"></label>
+              <label class="block"><span class="fld">Isha</span><input id="set-t-Isha" class="input mt-1.5" type="time"></label>
+            </div>
+            <button class="btn-gold w-full mt-4" type="button" data-action="save-prayers">Save prayer times</button>
+          </section>
+
+          <section class="set-sec">
+            <div class="set-sec-title">Notifications</div>
+            <label class="switch-row">
+              <span>
+                <span class="block font-medium text-sm">Random check-ins</span>
+                <span class="block text-xs text-muted mt-0.5">A nudge every 1–3 hours: “What are you doing right now?”</span>
+              </span>
+              <input type="checkbox" id="set-checkin" class="sr-only">
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+            <p id="notif-status" class="text-xs text-muted mt-3"></p>
+            <button class="btn-ghost w-full mt-3" type="button" data-action="test-notify">Test notification</button>
+          </section>
+
+          <section class="set-sec">
+            <div class="set-sec-title">Appearance</div>
+            <label class="switch-row">
+              <span>
+                <span class="block font-medium text-sm">Light theme</span>
+                <span class="block text-xs text-muted mt-0.5">Default is dark — easier on the eyes at night.</span>
+              </span>
+              <input type="checkbox" id="set-theme" class="sr-only">
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+          </section>
+
+          <section class="set-sec">
+            <div class="set-sec-title">Your data</div>
+            <p class="text-xs text-muted mb-3">Everything lives in this browser's localStorage. Export a backup before clearing browser data.</p>
+            <div class="flex flex-wrap gap-2">
+              <button class="btn-ghost flex-1" type="button" data-action="export-data">Export JSON</button>
+              <label class="btn-ghost flex-1 btn-file">Import JSON
+                <input id="import-file" type="file" accept="application/json,.json" class="sr-only">
+              </label>
+              <button class="btn-danger flex-1" type="button" data-action="reset-data">Reset all</button>
+            </div>
+          </section>
+
+          <p class="text-[11px] text-muted text-center pt-1">Nexreaper Ledger v1.0 · offline-first · your data never leaves this device</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================= CHECK-IN MODAL ======================= -->
+    <div id="checkin-modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Check-in">
+      <div class="modal-backdrop" data-close></div>
+      <div class="modal-panel modal-panel-sm">
+        <div class="modal-head">
+          <div>
+            <h3 class="font-display text-xl" id="checkin-modal-title">Random check-in</h3>
+            <p class="text-xs text-muted mt-0.5">Honest answer, one line.</p>
+          </div>
+          <button class="icon-btn" type="button" data-close aria-label="Close check-in">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="block">
+            <span class="fld">What are you doing right now?</span>
+            <textarea id="checkin-modal-input" class="input mt-1.5 checkin-textarea" rows="3" maxlength="200"
+              placeholder="Studying, walking, praying, working, resting..."></textarea>
+          </label>
+          <div class="flex gap-2 mt-4">
+            <button class="btn-ghost flex-1" type="button" data-close>Skip</button>
+            <button class="btn-gold flex-1" type="button" data-action="save-checkin">Log it</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toasts" aria-live="polite"></div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
 </html>
