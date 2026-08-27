@@ -11,9 +11,16 @@
     // Apply saved theme before first paint (no flash)
     try { document.documentElement.dataset.theme = localStorage.getItem('nl_theme') || 'dark'; } catch (e) {}
   </script>
+  <!-- Non-blocking font load: the page paints IMMEDIATELY with system
+       fonts. If the network can't reach Google Fonts (mobile data,
+       ad-blockers, restricted hosts), the design still ships — nothing
+       in the critical path waits on a CDN. Fonts swap in when they
+       arrive (display=swap). -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap"></noscript>
   <style>
 /* =========================================================
    Nexreaper Ledger — embedded styles
